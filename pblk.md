@@ -1,28 +1,29 @@
 # pblk_structure
 
 ## code list
-core.c           lightnvm层。与用户库不一样，主要是使用其bio和request的支持
-pblk-cache.c     pblk的写缓存，用户和GC的写入调用不同的函数。基于pblk-rb.c，即写缓存是使用ring buffer来实现。
-pblk-core.c      很多核心的内容。pblk_line的元数据管理，l2p map的管理，bb(bad block)的管理等等
-pblk-gc.c        gc读线程和gc写线程
-pblk-init.c      初始化工作
-pblk-map.c       逻辑地址到物理地址的映射，不局限于这个文件，很多地方都会涉及到l2p
-pblk-rb.c        ring buffer 缓存
-pblk-read.c      pblk读线程
-pblk-recovery.c  恢复数据的逻辑，写失败等等情况
-pblk-rl.c        rate limtter 速率限制器？应该是一些统计信息用来控制系统的运行？
-pblk-sysfs.c     输出信息到/sys/block/pblkdev
-pblk-write.c     pblk写线程
-pblk.h           所有的定义
+
+    core.c           //lightnvm层。与用户库不一样，主要是使用其bio和request的支持
+    pblk-cache.c     //pblk的写缓存，用户和GC的写入调用不同的函数。基于pblk-rb.c，即写缓存是使用ring buffer来实现。
+    pblk-core.c      //很多核心的内容。pblk_line的元数据管理，l2p map的管理，bb(bad block)的管理等等
+    pblk-gc.c        //gc读线程和gc写线程
+    pblk-init.c      //初始化工作
+    pblk-map.c       //逻辑地址到物理地址的映射，不局限于这个文件，很多地方都会涉及到l2p
+    pblk-rb.c        //ring buffer 缓存
+    pblk-read.c      //pblk读线程
+    pblk-recovery.c  //恢复数据的逻辑，写失败等等情况
+    pblk-rl.c        //rate limtter 速率限制器？应该是一些统计信息用来控制系统的运行？
+    pblk-sysfs.c     //输出信息到/sys/block/pblkdev
+    pblk-write.c     //pblk写线程
+    pblk.h           //所有的定义
 
 ## 块组织
 * lun和line的关系
          
-      lun 0   lun 1   lun 2   lun 3
-     [blk 0] [blk 0] [blk 0] [blk 0]   line 0
-     [blk 1] [blk 1] [blk 1] [blk 1]   line 1
-     [ ... ] [ ... ] [ ... ] [ ... ]    ...
-     [blk n] [blk n] [blk n] [blk n]   line n
+          lun 0   lun 1   lun 2   lun 3
+         [blk 0] [blk 0] [blk 0] [blk 0]   line 0
+         [blk 1] [blk 1] [blk 1] [blk 1]   line 1
+         [ ... ] [ ... ] [ ... ] [ ... ]    ...
+         [blk n] [blk n] [blk n] [blk n]   line n
 
 ## pblk structure
 * pblk.h
