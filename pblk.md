@@ -47,9 +47,15 @@
         pblk_init(...)
         {
             pblk = kzalloc(sizeof(struct pblk), GFP_KERNEL);
-            ret = pblk_luns_init(pblk, dev->luns);    //lun
-            ret = pblk_lines_init(pblk);              //lines
-            ret = pblk_core_init(pblk);               //mempool
+            ret = pblk_luns_init(pblk, dev->luns);    //初始化pblk->luns的物理地址bppa,lun中坏块检查
+            ret = pblk_lines_init(pblk);              //初始化line管理者pblk->l_mg(主要是初始化坏块表和各个链表,
+                                                      //链表包括free_list(读写逻辑的line管理)和gc_list
+                                                      //(gc逻辑的line管理 )) 
+                                                      //初始化lines元数据pblk->lm(主要是初始化各个bimap)
+                                                      //同时构建一个个lines中的line结构,并把line添加在free_list中
+            ret = pblk_core_init(pblk);               //创建几个经常使用的struct的slab内核缓存区，并创建相应的mempool
+                                                      //创建工作队列
+                                                      //管理内核缓存
             ret = pblk_l2p_init(pblk);                //l2p map
             ret = pblk_lines_configure(pblk, flags);  //conf of lines
             ret = pblk_writer_init(pblk);             //初始化写线程
@@ -57,6 +63,54 @@
             wake_up_process(pblk->writer_ts);         //唤醒写线程
             return pblk;
         }
+
+
+        struct pblk_line {
+            struct pblk *pblk;
+            unsigned int id;		/* Line number corresponds to the
+                             * block line
+                             */
+            unsigned int seq_nr;		/* Unique line sequence number */
+
+            int state;			/* PBLK_LINESTATE_X */
+            int type;			/* PBLK_LINETYPE_X */
+            int gc_group;			/* PBLK_LINEGC_X */
+            struct list_head list;		/* Free, GC lists */
+
+            unsigned long *lun_bitmap;	/* Bitmap for LUNs mapped in line */
+
+            struct pblk_smeta *smeta;	/* Start metadata */
+            struct pblk_emeta *emeta;	/* End medatada */
+
+            int meta_line;			/* Metadata line id */
+            int meta_distance;		/* Distance between data and metadata */
+
+            u64 smeta_ssec;			/* Sector where smeta starts */
+            u64 emeta_ssec;			/* Sector where emeta starts */
+
+            unsigned int sec_in_line;	/* Number of usable secs in line */
+
+            atomic_t blk_in_line;		/* Number of good blocks in line */
+            unsigned long *blk_bitmap;	/* Bitmap for valid/invalid blocks */
+            unsigned long *erase_bitmap;	/* Bitmap for erased blocks */
+
+            unsigned long *map_bitmap;	/* Bitmap for mapped sectors in line */
+            unsigned long *invalid_bitmap;	/* Bitmap for invalid sectors in line */
+
+            atomic_t left_eblks;		/* Blocks left for erasing */
+            atomic_t left_seblks;		/* Blocks left for sync erasing */
+
+            int left_msecs;			/* Sectors left for mapping */
+            unsigned int cur_sec;		/* Sector map pointer */
+            unsigned int nr_valid_lbas;	/* Number of valid lbas in line */
+
+            __le32 *vsc;			/* Valid sector count in line */
+
+            struct kref ref;		/* Write buffer L2P references */
+
+            spinlock_t lock;		/* Necessary for invalid_bitmap only */
+        };
+
 
 由pblk_init调用的写线程
 pblk-write.c int pblk_write_ts(void *data)
