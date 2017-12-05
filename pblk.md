@@ -16,12 +16,13 @@ pblk-write.c     pblk写线程
 pblk.h           所有的定义
 
 ## 块组织
-lun和line
-  lun 0   lun 1   lun 2   lun 3
- [blk 0] [blk 0] [blk 0] [blk 0]   line 0
- [blk 1] [blk 1] [blk 1] [blk 1]   line 1
- [ ... ] [ ... ] [ ... ] [ ... ]    ...
- [blk n] [blk n] [blk n] [blk n]   line n
+* lun和line的关系
+         
+      lun 0   lun 1   lun 2   lun 3
+     [blk 0] [blk 0] [blk 0] [blk 0]   line 0
+     [blk 1] [blk 1] [blk 1] [blk 1]   line 1
+     [ ... ] [ ... ] [ ... ] [ ... ]    ...
+     [blk n] [blk n] [blk n] [blk n]   line n
 
 ## pblk structure
 * pblk.h
