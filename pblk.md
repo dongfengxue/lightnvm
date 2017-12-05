@@ -1,6 +1,6 @@
-#pblk_structure
+# pblk_structure
 
-##code list
+## code list
 core.c           lightnvm层。与用户库不一样，主要是使用其bio和request的支持
 pblk-cache.c     pblk的写缓存，用户和GC的写入调用不同的函数。基于pblk-rb.c，即写缓存是使用ring buffer来实现。
 pblk-core.c      很多核心的内容。pblk_line的元数据管理，l2p map的管理，bb(bad block)的管理等等
@@ -15,7 +15,7 @@ pblk-sysfs.c     输出信息到/sys/block/pblkdev
 pblk-write.c     pblk写线程
 pblk.h           所有的定义
 
-##块组织
+## 块组织
 lun和line
   lun 0   lun 1   lun 2   lun 3
  [blk 0] [blk 0] [blk 0] [blk 0]   line 0
@@ -23,7 +23,7 @@ lun和line
  [ ... ] [ ... ] [ ... ] [ ... ]    ...
  [blk n] [blk n] [blk n] [blk n]   line n
 
-##pblk structure
+## pblk structure
 * pblk.h
 
         struct pblk {
@@ -39,7 +39,7 @@ lun和line
         };
 
 
-##pblk-init
+## pblk-init
 * pblk-init.c
 
         pblk_init(...)
@@ -64,7 +64,7 @@ pblk-write.c int pblk_write_ts(void *data)
 从顶层发下来的写请求应该是直接调用了pblk_write_to_cache(...)
 这里的写线程只负责把cache中的数据下放到设备
 
-##GC
+## GC
 * pblk-gc.c
 
         int pblk_gc_init(struct pblk *pblk)
@@ -85,7 +85,7 @@ pblk-write.c int pblk_write_ts(void *data)
             // gc写线程: 将w_list的内容写入cache（调用gc用来写cache的函数）也就是写入ring buffer
         }
 
-##写流程
+## 写流程
 
 1. pblk-cache.c
 
