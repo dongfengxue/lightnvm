@@ -50,16 +50,18 @@
             ret = pblk_luns_init(pblk, dev->luns);    //初始化pblk->luns的物理地址bppa,lun中坏块检查
             ret = pblk_lines_init(pblk);              //初始化line管理者pblk->l_mg(主要是初始化坏块表和各个链表,
                                                       //链表包括free_list(读写逻辑的line管理)和gc_list
-                                                      //(gc逻辑的line管理 )) 
-                                                      //初始化lines元数据pblk->lm(主要是初始化各个bimap)
+                                                      //(gc逻辑的line管理 )), 
+                                                      //初始化lines元数据pblk->lm(主要是初始化各个bimap),
                                                       //同时构建一个个lines中的line结构,并把line添加在free_list中
-            ret = pblk_core_init(pblk);               //创建几个经常使用的struct的slab内核缓存区，并创建相应的mempool
-                                                      //创建工作队列
-                                                      //管理内核缓存
-            ret = pblk_l2p_init(pblk);                //l2p map
+            ret = pblk_core_init(pblk);               //创建几个经常使用的struct的slab内核缓存区，
+                                                      //并创建相应的mempool,管理内核缓存,
+                                                      //并创建close工作队列和bb工作队列。
+            ret = pblk_l2p_init(pblk);                //初始化l2p map(逻辑地址到物理地址映射表)，使用的是一个trans_map
+                                                      //两者的关系
             ret = pblk_lines_configure(pblk, flags);  //conf of lines
-            ret = pblk_writer_init(pblk);             //初始化写线程
-            ret = pblk_gc_init(pblk);                 //GC
+            ret = pblk_writer_init(pblk);             //设置写操作内核定时器，创建写操作内核线程
+            ret = pblk_gc_init(pblk);                 //创建GC内核线程，GC写操作内核线程，GC读操作内核线程，设置GC操作
+                                                      //内核定时器，创建两个GC操作的工作队列,初始化gc链表
             wake_up_process(pblk->writer_ts);         //唤醒写线程
             return pblk;
         }
