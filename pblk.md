@@ -32,7 +32,7 @@
             struct pblk_lun *luns;  //LUN
             struct pblk_line *lines;	 //LINE
             struct pblk_line_mgmt l_mg;   //用于管理pblk_line
-            struct pblk_line_meta lm;     //元数据，这个我就没仔细看了
+            struct pblk_line_meta lm;     //line的元数据，主要是维护各个bitmap结构
             struct pblk_rb rwb;   //ring buffer的缓存
             struct task_struct *writer_ts;  //写线程
             unsigned char *trans_map;  //l2p : logical address to physical address map 逻辑地址到物理地址的映射map
@@ -47,7 +47,7 @@
         pblk_init(...)
         {
             pblk = kzalloc(sizeof(struct pblk), GFP_KERNEL);
-            ret = pblk_luns_init(pblk, dev->luns);    //初始化pblk->luns的物理地址bppa,lun中坏块检查
+            ret = pblk_luns_init(pblk, dev->luns);    //初始化pblk->luns的物理地址bppa,并对lun中坏块检查
             ret = pblk_lines_init(pblk);              //初始化line管理者pblk->l_mg(主要是初始化坏块表和各个链表,
                                                       //链表包括free_list(读写逻辑的line管理)和gc_list
                                                       //(gc逻辑的line管理 )), 
@@ -57,7 +57,7 @@
                                                       //并创建相应的mempool,管理内核缓存,
                                                       //并创建close工作队列和bb工作队列。
             ret = pblk_l2p_init(pblk);                //初始化l2p map(逻辑地址到物理地址映射表)，使用的是一个trans_map
-                                                      //两者的关系
+                                                      //维护两者的关系
             ret = pblk_lines_configure(pblk, flags);  //conf of lines
             ret = pblk_writer_init(pblk);             //设置写操作内核定时器，创建写操作内核线程
             ret = pblk_gc_init(pblk);                 //创建GC内核线程，GC写操作内核线程，GC读操作内核线程，设置GC操作
@@ -115,10 +115,62 @@
 
 
 由pblk_init调用的写线程
-pblk-write.c int pblk_write_ts(void *data)
+pblk-write.c
+
+    int pblk_write_ts(void *data)
+
+    static int pblk_submit_write(struct pblk *pblk)
+
+    //从ring buffer缓存中读取数据到bio
+    unsigned int pblk_rb_read_to_bio(struct pblk_rb *rb, struct nvm_rq *rqd,struct bio *bio, unsigned int pos,
+             unsigned int nr_entries, unsigned int count)
+
+    //提交nvm_rq到底层的lightnvm层
+    static int pblk_submit_io_set(struct pblk *pblk, struct nvm_rq *rqd)
+
+    //ring_buffer数据结构
+    struct pblk_rb {
+        struct pblk_rb_entry *entries;	/* Ring buffer entries */
+        unsigned int mem;		/* Write offset - points to next
+                         * writable entry in memory
+                         */
+        unsigned int subm;		/* Read offset - points to last entry
+                         * that has been submitted to the media
+                         * to be persisted
+                         */
+        unsigned int sync;		/* Synced - backpointer that signals
+                         * the last submitted entry that has
+                         * been successfully persisted to media
+                         */
+        unsigned int sync_point;	/* Sync point - last entry that must be
+                         * flushed to the media. Used with
+                         * REQ_FLUSH and REQ_FUA
+                         */
+        unsigned int l2p_update;	/* l2p update point - next entry for
+                         * which l2p mapping will be updated to
+                         * contain a device ppa address (instead
+                         * of a cacheline
+                         */
+        unsigned int nr_entries;	/* Number of entries in write buffer -
+                         * must be a power of two
+                         */
+        unsigned int seg_size;		/* Size of the data segments being
+                         * stored on each entry. Typically this
+                         * will be 4KB
+                         */
+
+        struct list_head pages;		/* List of data pages */
+
+        spinlock_t w_lock;		/* Write lock */
+        spinlock_t s_lock;		/* Sync lock */
+
+    };
+
+
 1. 从ring buffer缓存中读取数据到bio
 2. 将bio组织成nvm_rq
 3. 提交nvm_rq到底层的lightnvm层
+
 从顶层发下来的写请求应该是直接调用了pblk_write_to_cache(...)
 这里的写线程只负责把cache中的数据下放到设备
 
