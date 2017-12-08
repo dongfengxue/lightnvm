@@ -175,7 +175,8 @@ pblk-write.c
 这里的写线程只负责把cache中的数据下放到设备
 
 ## GC
-* pblk-gc.c
+pblk-gc.c
+* gc初始化
 
         int pblk_gc_init(struct pblk *pblk)
         { struct pblk_gc *gc = &pblk->gc;
@@ -190,16 +191,18 @@ pblk-write.c
             mod_timer(&gc->gc_timer, jiffies + msecs_to_jiffies(GC_TIME_MSECS));
             //内核定时器唤醒gc线程和gc的读线程和写线程
 
-            //gc线程:   检查line的状态（是否写满、是否有脏数据等等），处理全是无效数据的line,把需要搬有效数据的
-            //line放到pblk_gc结构体的r_list中(pblk_gc_ts -> pblk_gc_run)
-
-            //gc读线程: 根据pblk_gc结构体中的r_list对line进行读取，把读到的有效数据存入w_list
-            //(pblk_gc_reader_ts ->pblk_gc_read ->pblk_gc_line)
-
-            //gc写线程: 将w_list的内容写入cache（调用gc用来写cache的函数）也就是写入ring buffer,并数据的逻辑地址指向            //ring buffer中的某个cacheline中
-            //(pblk_gc_writer_ts ->pblk_gc_write -> pblk_write_gc_to_cache -> pblk_rb_write_entry_gc->
-            //pblk_update_map_gc)
         }
+
+* gc线程: 检查line的状态（是否写满、是否有脏数据等等），处理全是无效数据的line,把需要搬有效数据的line放到pblk_gc结构体的r_list中
+            (pblk_gc_ts -> pblk_gc_run)
+
+* gc读线程: 根据pblk_gc结构体中的r_list对line进行读取，把读到的有效数据存入w_list
+            (pblk_gc_reader_ts ->pblk_gc_read ->pblk_gc_line)
+
+* gc写线程: 将w_list的内容写入cache（调用gc用来写cache的函数）也就是写入ring buffer,并数据的逻辑地址指向ring buffer中的某个cacheline中
+            (pblk_gc_writer_ts ->pblk_gc_write -> pblk_write_gc_to_cache -> pblk_rb_write_entry_gc->
+            pblk_update_map_gc)
+
 
 ## 写流程
 
