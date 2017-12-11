@@ -176,7 +176,7 @@ pblk-write.c
 
 ## GC
 pblk-gc.c
-* gc初始化
+*  gc初始化
 
         int pblk_gc_init(struct pblk *pblk)
         { struct pblk_gc *gc = &pblk->gc;
